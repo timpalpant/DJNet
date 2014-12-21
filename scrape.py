@@ -13,6 +13,7 @@ import requests
 from multiprocessing import Pool
 
 url = r'http://www.mixesdb.com'
+nthreads = 16
 
 def artists_from_soup(soup):
     page_artists_list = soup.find('ul', id='catSubcatsList')
@@ -78,13 +79,14 @@ def get_artist_mixes(all_artists):
     if len(to_process) == 0: return artist_mixes
     print "Getting mixes for %d artists" % len(to_process)
     
-    pool = Pool(16)
+    pool = Pool(nthreads)
+    new_artist_mixes = {}
     for artist_name, artist_link in to_process.items():
-        artist_mixes[artist_name] = pool.apply_async(mixes_for_artist, (artist_link,))
+        new_artist_mixes[artist_name] = pool.apply_async(mixes_for_artist, (artist_link,))
     print "Waiting for all scrape tasks to complete"
     nartists = 0
     nmixes = 0
-    for artist_name, async_result in artist_mixes.items():
+    for artist_name, async_result in new_artist_mixes.items():
         try:
             mixes = async_result.get()
             artist_mixes[artist_name] = mixes
@@ -94,10 +96,6 @@ def get_artist_mixes(all_artists):
         except Exception, e:
             artist_mixes.pop(artist_name)
             print >>sys.stderr, e
-        
-        if nartists % 100 == 0:
-            percent = 100. * nartists / len(all_artists)
-            print '*** Processed %d artists (%.2f %%) ***' % (nartists, percent)
     print "Found %d mixes" % nmixes
     
     print "Saving mix links"
@@ -119,12 +117,13 @@ def get_tracklists(artist_mixes):
     if len(to_process) == 0: return all_mixes
     print "Getting tracklists for %d mixes" % len(to_process)
     
-    pool = Pool(16)
+    pool = Pool(nthreads)
+    new_mixes = {}
     for mix_name, mix_link in to_process.items():
-        all_mixes[mix_name] = pool.apply_async(mix_from_link, (mix_link,))
+        new_mixes[mix_name] = pool.apply_async(mix_from_link, (mix_link,))
     print "Waiting for all scrape tasks to complete"
     ncompleted = 0
-    for mix_name, async_result in all_mixes.items():
+    for mix_name, async_result in new_mixes.items():
         try:
             result = async_result.get()
             all_mixes[mix_name] = result
@@ -132,10 +131,6 @@ def get_tracklists(artist_mixes):
         except Exception, e:
             all_mixes.pop(mix_name)
             print >>sys.stderr, e
-        
-        if ncompleted % 50 == 0:
-            percent = 100. * ncompleted / nmixes
-            print '*** Processed %d mixes (%.2f %%) ***' % (ncompleted, percent)
     print "Scraped %d mixes" % ncompleted
         
     with open('mixes.pkl', 'w') as fd:
