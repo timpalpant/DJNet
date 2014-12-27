@@ -5,7 +5,7 @@ Print edges in the DJ network
 (DJ, artist, remixer, date)
 '''
 
-import sys, re
+import sys, re, csv
 from datetime import datetime
 import cPickle as pickle
 
@@ -19,7 +19,8 @@ def get_mix_date(mix_name):
 
 def get_track_artists(line):
     artist, title = line.strip().split(' - ', 1)
-    _, artist = prefix_pattern.split(artist, 1)
+    try: _, artist = prefix_pattern.split(artist, 1)
+    except: pass
     artist = artist.replace('+ ', '')
     remixer = remix_pattern.search(title)
     if remixer:
@@ -36,6 +37,7 @@ if __name__ == '__main__':
         % (len(djs), len(mixes))
     
     print '# DJ, Track Artist, Track Remixer, Mix Date'
+    writer = csv.writer(sys.stdout)
     for dj, dj_mixes in djs.items():
         for mix in dj_mixes.keys():
             try: mix_date = get_mix_date(mix)
@@ -43,16 +45,18 @@ if __name__ == '__main__':
             
             try: 
                 categories, tracklist = mixes[mix]
-                if isinstance(tracklist, str):
+                if not isinstance(tracklist, list):
                     tracklist = tracklist.split('\n')
-            except: 
+            except Exception, e: 
+                #print >>sys.stderr, e
                 continue    
                 
             if tracklist is None: continue
             for track in tracklist:
                 try:
                     track_artist, track_remixer = get_track_artists(track)
-                    print '"%s","%s","%s","%s"' \
-                        % (dj, track_artist, track_remixer, mix_date)
-                except: 
+                    writer.writerow((dj, track_artist, track_remixer, mix_date))
+                except Exception, e: 
+                    #print >>sys.stderr, track
+                    #print >>sys.stderr, e
                     continue

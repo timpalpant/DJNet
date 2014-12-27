@@ -15,7 +15,7 @@ from multiprocessing import Pool
 
 url = r'http://www.mixesdb.com'
 nthreads = 16
-checkpoint = 200
+checkpoint = 500
 
 def artists_from_soup(soup):
     page_artists_list = soup.find('ul', id='catSubcatsList')
