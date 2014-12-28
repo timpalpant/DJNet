@@ -31,15 +31,19 @@ def nplays(edges):
         count[dj2] += 1
     return dict(count)
     
-def filter_edges(edges, min_nplays=1):
+def filter_edges(edges, node_plays=0, edge_plays=0):
     '''Remove djs with total nplays < minimum'''
     count = nplays(edges)
-    filtered = {(dj1, dj2): v for (dj1, dj2), v in edges.iteritems()
-                if count.get(dj1, 0) > min_nplays and count.get(dj2, 0) > min_nplays}
+    filtered = {k: v for k, v in edges.iteritems()
+                if count.get(k[0], 0) > node_plays and count.get(k[1], 0) > node_plays and v > edge_plays}
     return filtered, count
     
 def nodes_for_edges(edges):
-    return nplays(edges).keys()
+    nodes = set()
+    for n1, n2 in edges.iterkeys():
+        nodes.add(n1)
+        nodes.add(n2)
+    return nodes
 
 def to_json(edges, count):
     djs = nodes_for_edges(edges)
@@ -47,7 +51,7 @@ def to_json(edges, count):
              for name in djs]
     djs_to_index = {name: i for i, name in enumerate(djs)}
     links = [dict(source=djs_to_index[dj1], target=djs_to_index[dj2], value=n)
-         for (dj1, dj2), n in edges.iteritems()]
+             for (dj1, dj2), n in edges.iteritems()]
     data = dict(nodes=nodes, links=links)
     return data
     
@@ -63,12 +67,13 @@ if __name__ == '__main__':
     edges = load_edges()
     print_graph(edges)
         
-    cutoff = 100
-    print >>sys.stderr, "Removing nodes with < %d plays" % cutoff
-    edges, count = filter_edges(edges, cutoff)
+    node_cutoff = 100
+    edge_cutoff = 1
+    print >>sys.stderr, "Removing nodes with < %d plays" % node_cutoff
+    edges, playcount = filter_edges(edges, node_cutoff, edge_cutoff)
     print_graph(edges)
         
     print >>sys.stderr, "Converting to dict"
-    data = to_json(edges, count)
+    data = to_json(edges, playcount)
     print >>sys.stderr, "Serializing to JSON"
     json.dump(data, sys.stdout, indent=2, separators=(',', ': '))

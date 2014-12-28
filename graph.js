@@ -4,10 +4,10 @@ var width = 1050,
 var color = d3.scale.category20();
 
 var force = d3.layout.force()
-    .charge(-200)
-    .linkDistance(60)
-    .linkStrength(function(d) { return Math.min(0.01*d.value, 1); })
-    .gravity(0.1)
+    .charge(-100)
+    .linkDistance(function(d) { return 100/(d.value*d.value); })
+    .linkStrength(function(d) { return Math.min(0.05*d.value, 1); })
+    .gravity(0.2)
     .size([width, height]);
 
 var svg = d3.select("body").append("svg")
